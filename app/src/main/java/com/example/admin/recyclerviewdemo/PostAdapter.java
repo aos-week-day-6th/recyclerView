@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import java.util.List;
@@ -16,9 +17,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
 
     List<Post> posts;
     Context context;
+    PostCallback callback;
     public PostAdapter(Context context,List<Post> posts) {
         this.posts = posts;
         this.context=context;
+        callback = (PostCallback) context;
     }
 
 
@@ -44,8 +47,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
         viewHolder.userName.setText(post.getUserName());
         viewHolder.content.setText(post.getContent());
         viewHolder.checkIn.setText(post.getCheckIn());
-
+        viewHolder.likeCount.setText(post.getLikeCount());
         viewHolder.onImageClicked();
+        viewHolder.onItemMenuClicked(post);
     }
 
     @Override
@@ -56,7 +60,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
     class ViewHolder extends RecyclerView.ViewHolder{
 
         ImageView imageProfile, image,btnMenu,btnLike,btnComment,btnShare,btnBookmark;
-        TextView userName,content,checkIn;
+        TextView userName,content,checkIn,likeCount;
 
 
         public ViewHolder(@NonNull View itemView) {
@@ -72,6 +76,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             userName=itemView.findViewById(R.id.userName);
             content=itemView.findViewById(R.id.content);
             checkIn=itemView.findViewById(R.id.checkIn);
+            likeCount=itemView.findViewById(R.id.likeCount);
         }
 
 
@@ -84,5 +89,28 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             });
         }
 
+        private void onItemMenuClicked(Post post){
+            btnMenu.setOnClickListener(v->{
+                PopupMenu menu=new PopupMenu(context,v);
+                menu.inflate(R.menu.popup_menu);
+                menu.setOnMenuItemClickListener(item->{
+                    switch (item.getItemId()){
+                        case R.id.remove:
+                            //callback
+                            callback.getPost(post,getAdapterPosition());
+                            return true;
+                        case R.id.editPost:
+                            return  true;
+                            default: return false;
+                    }
+                });
+                menu.show();
+            });
+        }
+
+    }
+
+    public interface  PostCallback{
+        void getPost(Post post, int position);
     }
 }

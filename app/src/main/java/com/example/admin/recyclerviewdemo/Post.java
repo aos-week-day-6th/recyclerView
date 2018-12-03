@@ -1,6 +1,9 @@
 package com.example.admin.recyclerviewdemo;
 
-public class Post {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Post implements Parcelable {
 
     int userProfile;
     String userName;
@@ -17,6 +20,42 @@ public class Post {
         this.likeCount = likeCount;
         this.image = image;
     }
+
+    protected Post(Parcel in) {
+        userProfile = in.readInt();
+        userName = in.readString();
+        checkIn = in.readString();
+        content = in.readString();
+        likeCount = in.readString();
+        image = in.readInt();
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(userProfile);
+        dest.writeString(userName);
+        dest.writeString(checkIn);
+        dest.writeString(content);
+        dest.writeString(likeCount);
+        dest.writeInt(image);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<Post> CREATOR = new Creator<Post>() {
+        @Override
+        public Post createFromParcel(Parcel in) {
+            return new Post(in);
+        }
+
+        @Override
+        public Post[] newArray(int size) {
+            return new Post[size];
+        }
+    };
 
     public int getUserProfile() {
         return userProfile;
@@ -64,5 +103,17 @@ public class Post {
 
     public void setImage(int image) {
         this.image = image;
+    }
+
+    @Override
+    public String toString() {
+        return "Post{" +
+                "userProfile=" + userProfile +
+                ", userName='" + userName + '\'' +
+                ", checkIn='" + checkIn + '\'' +
+                ", content='" + content + '\'' +
+                ", likeCount='" + likeCount + '\'' +
+                ", image=" + image +
+                '}';
     }
 }
