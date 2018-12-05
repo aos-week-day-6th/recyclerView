@@ -1,24 +1,35 @@
 package com.example.admin.recyclerviewdemo;
 
 import android.content.Intent;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import com.paginate.Paginate;
+import com.paginate.recycler.LoadingListItemSpanLookup;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PostActivity extends AppCompatActivity  implements PostAdapter.PostCallback {
-
+    public static final int REQUEST_CODE_POST=1;
+    private static final int REQUEST_CODE_EDIT =2;
     private RecyclerView recyclerView;
     private PostAdapter adapter;
     private List<Post> postList=new ArrayList<>();
-    public static final int REQUEST_CODE_POST=1;
+
+    //paginate vars
+    int totalPage=10;
+    boolean isLoading=true;
+    int currentPage=1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,14 +39,60 @@ public class PostActivity extends AppCompatActivity  implements PostAdapter.Post
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter=new PostAdapter(this,postList);
 
+        //recyclerView Animator
+        //AlphaInAnimationAdapter alphaAdapter= new AlphaInAnimationAdapter(adapter);
+
         recyclerView.setAdapter(adapter);
 
-        getData();
+        isLoading=true;
+        currentPage=1;
+        Paginate.with(recyclerView,callback)
+                .setLoadingTriggerThreshold(2)
+                .addLoadingListItem(true)
+                .setLoadingListItemCreator(null)
+                .setLoadingListItemSpanSizeLookup(new LoadingListItemSpanLookup() {
+                    @Override
+                    public int getSpanSize() {
+                        return 1;
+                    }
+                }).build();
+
+        //getData();
     }
 
+
+    Paginate.Callbacks callback = new Paginate.Callbacks() {
+        @Override
+        public void onLoadMore() {
+            Log.e("page", "onLoadMore: "+currentPage );
+            //isLoading=true;
+            if(isLoading){
+                new Handler().postDelayed(()-> {
+                    getData();
+                },2000);
+
+                currentPage++;
+                isLoading=false;
+            }
+        }
+
+
+        @Override
+        public boolean isLoading() {
+            return false;
+        }
+
+        @Override
+        public boolean hasLoadedAllItems() {
+            return currentPage==10;
+        }
+    };
+
+    List<Post> newPosts=new ArrayList<>();
     private void getData() {
-        for (int i=0;i<50;i++){
-            this.postList.add(new Post(
+        newPosts.clear();
+        for (int i=0;i<10;i++){
+            newPosts.add(new Post(
                     R.drawable.puppy,
                     "___Puppy___",
                     "Phnom Penh",
@@ -45,7 +102,8 @@ public class PostActivity extends AppCompatActivity  implements PostAdapter.Post
             ));
         }
 
-        adapter.setPosts(this.postList);
+        isLoading=true;
+        adapter.setPosts(newPosts);
 
     }
 
@@ -53,7 +111,47 @@ public class PostActivity extends AppCompatActivity  implements PostAdapter.Post
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.option_menu,menu);
+
+        MenuItem searchItem= menu.findItem(R.id.search);
+        SearchView searchView= (SearchView) searchItem.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                doSearch(s);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                doSearch(s);
+                return true;
+            }
+        });
+
         return true;
+    }
+
+    private void doSearch(String s) {
+
+        Log.e("search", "doSearch: "+s);
+        if(s.isEmpty()){
+            postList.clear();
+            getData();
+            return;
+        }
+
+        List<Post> searchResult=new ArrayList<>();
+        searchResult.clear();
+        for(Post post: postList){
+            if(post.getContent().contains(s)){
+                searchResult.add(post);
+            }
+        }
+
+        if(searchResult.size()>0){
+            adapter.setSearchResult(searchResult);
+        }
+
     }
 
     @Override
@@ -80,7 +178,16 @@ public class PostActivity extends AppCompatActivity  implements PostAdapter.Post
             adapter.notifyItemInserted(0);
             setRecyclerViewScroll(0);
             Log.e("new data",post.toString());
+
+        }else if(requestCode==REQUEST_CODE_EDIT && resultCode==RESULT_OK){
+            Post newPost=data.getParcelableExtra("newPost");
+            int position = data.getIntExtra("position",0);
+            postList.set(position,newPost);
+            adapter.notifyItemChanged(position);
+            setRecyclerViewScroll(position);
         }
+
+
 
 
     }
@@ -90,8 +197,22 @@ public class PostActivity extends AppCompatActivity  implements PostAdapter.Post
     }
 
     @Override
-    public void getPost(Post post, int position) {
-        postList.remove(post);
-        adapter.notifyItemRemoved(position);
+    public void getPost(int actionType,Post post, int position) {
+        switch (actionType){
+            case PostAdapter.TYPE_REMOVE:
+                postList.remove(post);
+                adapter.notifyItemRemoved(position);
+                break;
+            case PostAdapter.TYPE_EDIT:
+                Log.e("position",position + "");
+                 Intent intent=new Intent(this,EditPostActivity.class);
+                 Bundle b=new Bundle();
+                 b.putParcelable("oldPost",post);
+                 intent.putExtras(b);
+                 intent.putExtra("position",position);
+                 startActivityForResult(intent,REQUEST_CODE_EDIT);
+                break;
+        }
+
     }
 }

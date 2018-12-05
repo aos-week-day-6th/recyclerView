@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -18,6 +19,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
     List<Post> posts;
     Context context;
     PostCallback callback;
+    public static final int TYPE_EDIT=2;
+    public static final int TYPE_REMOVE=1;
+
     public PostAdapter(Context context,List<Post> posts) {
         this.posts = posts;
         this.context=context;
@@ -55,6 +59,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
     @Override
     public int getItemCount() {
         return this.posts.size();
+    }
+
+    public void setSearchResult(List<Post> searchResult) {
+        posts.clear();
+        posts.addAll(searchResult);
+        notifyDataSetChanged();
     }
 
     class ViewHolder extends RecyclerView.ViewHolder{
@@ -97,11 +107,12 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
                     switch (item.getItemId()){
                         case R.id.remove:
                             //callback
-                            callback.getPost(post,getAdapterPosition());
+                            callback.getPost(TYPE_REMOVE,post,getAdapterPosition());
                             return true;
                         case R.id.editPost:
+                            callback.getPost(TYPE_EDIT,post,getAdapterPosition());
                             return  true;
-                            default: return false;
+                        default: return false;
                     }
                 });
                 menu.show();
@@ -111,6 +122,6 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
     }
 
     public interface  PostCallback{
-        void getPost(Post post, int position);
+        void getPost(int actionType,Post post, int position);
     }
 }
